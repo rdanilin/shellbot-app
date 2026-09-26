@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Shellbot</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: var(--tg-theme-bg-color, #1c1c1e);
+      color: var(--tg-theme-text-color, #fff);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      align-items: stretch;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    h1 { font-size: 20px; text-align: center; font-weight: 600; }
+    .sub { font-size: 13px; text-align: center; color: var(--tg-theme-hint-color, #8e8e93); }
+    button {
+      font-size: 18px;
+      font-weight: 600;
+      padding: 18px 16px;
+      border: none;
+      border-radius: 14px;
+      background: var(--tg-theme-button-color, #3390ec);
+      color: var(--tg-theme-button-text-color, #fff);
+      cursor: pointer;
+    }
+    button:active { opacity: 0.7; }
+    .note {
+      display: none;
+      font-size: 12px;
+      text-align: center;
+      color: var(--tg-theme-hint-color, #8e8e93);
+    }
+  </style>
+</head>
+<body>
+  <h1>⚡️ Shellbot</h1>
+  <div class="sub">EV charging stations</div>
+  <button id="free">🚙 Free stations</button>
+  <button id="status">📊 Status</button>
+  <div class="note" id="note">Open this page from the bot's chat in Telegram.</div>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script>
+    const app = window.Telegram && window.Telegram.WebApp;
+    if (app) {
+      app.ready();
+      app.expand();
+    } else {
+      document.getElementById("note").style.display = "block";
+    }
+    function send(data) {
+      if (!app) {
+        return;
+      }
+      app.HapticFeedback.impactOccurred("medium");
+      app.sendData(data);
+    }
+    document.getElementById("free").addEventListener("click", () => send("/free"));
+    document.getElementById("status").addEventListener("click", () => send("/status"));
+  </script>
+</body>
+</html>
