@@ -12,28 +12,29 @@
       color: var(--tg-theme-text-color, #fff);
       display: flex;
       flex-direction: column;
-      gap: 14px;
-      align-items: stretch;
-      justify-content: center;
+      gap: 10px;
+      padding: 20px;
       min-height: 100vh;
-      padding: 24px;
     }
     h1 { font-size: 20px; text-align: center; font-weight: 600; }
-    .sub { font-size: 13px; text-align: center; color: var(--tg-theme-hint-color, #8e8e93); }
-    button {
-      font-size: 18px;
-      font-weight: 600;
-      padding: 18px 16px;
-      border: none;
+    .sub { font-size: 13px; text-align: center; color: var(--tg-theme-hint-color, #8e8e93); margin-bottom: 8px; }
+    .card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
       border-radius: 14px;
-      background: var(--tg-theme-button-color, #3390ec);
-      color: var(--tg-theme-button-text-color, #fff);
-      cursor: pointer;
+      background: var(--tg-theme-secondary-bg-color, #2c2c2e);
     }
-    button:active { opacity: 0.7; }
+    .dot { width: 14px; height: 14px; border-radius: 50%; flex: none; }
+    .name { font-size: 22px; font-weight: 700; }
+    .status { margin-left: auto; text-align: right; }
+    .status-label { font-size: 13px; font-weight: 600; }
+    .minutes { font-size: 12px; color: var(--tg-theme-hint-color, #8e8e93); }
+    .updated { font-size: 12px; text-align: center; color: var(--tg-theme-hint-color, #8e8e93); margin-top: 8px; }
     .note {
       display: none;
-      font-size: 12px;
+      font-size: 13px;
       text-align: center;
       color: var(--tg-theme-hint-color, #8e8e93);
     }
@@ -42,27 +43,80 @@
 <body>
   <h1>⚡️ Shellbot</h1>
   <div class="sub">EV charging stations</div>
-  <button id="free">🚙 Free stations</button>
-  <button id="status">📊 Status</button>
-  <div class="note" id="note">Open this page from the bot's chat in Telegram.</div>
+  <div id="cards"></div>
+  <div class="updated" id="updated"></div>
+  <div class="note" id="note">No station data — open this from the bot's ⌁ Stations menu button.</div>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
+    const STATUSES = {
+      A: { label: "Available", color: "#34c759" },
+      C: { label: "Charging", color: "#ff9f0a" },
+      O: { label: "Completed · occupied", color: "#ff453a" },
+      U: { label: "Unavailable", color: "#8e8e93" },
+      N: { label: "Connected", color: "#5e5ce6" },
+      X: { label: "Unknown", color: "#8e8e93" }
+    };
+
     const app = window.Telegram && window.Telegram.WebApp;
     if (app) {
       app.ready();
       app.expand();
-    } else {
-      document.getElementById("note").style.display = "block";
     }
-    function send(data) {
-      if (!app) {
+
+    function payload() {
+      const params = new URLSearchParams(window.location.search);
+      let data = params.get("d");
+      if (!data && app && app.initDataUnsafe && app.initDataUnsafe.start_param) {
+        data = app.initDataUnsafe.start_param;
+      }
+      return data || "";
+    }
+
+    function render() {
+      const data = payload();
+      if (!data) {
+        document.getElementById("note").style.display = "block";
         return;
       }
-      app.HapticFeedback.impactOccurred("medium");
-      app.sendData(data);
+      const cards = document.getElementById("cards");
+      const elements = [];
+      for (const entry of data.split(",")) {
+        const [name, letter, minutes] = entry.split("-");
+        const status = STATUSES[letter] || STATUSES.X;
+        const card = document.createElement("div");
+        card.className = "card";
+        const dot = document.createElement("div");
+        dot.className = "dot";
+        dot.style.background = status.color;
+        const nameEl = document.createElement("div");
+        nameEl.className = "name";
+        nameEl.textContent = name;
+        const statusEl = document.createElement("div");
+        statusEl.className = "status";
+        const label = document.createElement("div");
+        label.className = "status-label";
+        label.style.color = status.color;
+        label.textContent = status.label;
+        const mins = document.createElement("div");
+        mins.className = "minutes";
+        mins.textContent = (minutes || 0) + "m";
+        statusEl.append(label, mins);
+        card.append(dot, nameEl, statusEl);
+        elements.push(card);
+      }
+      cards.replaceChildren(...elements);
+      const ts = new URLSearchParams(window.location.search).get("t");
+      if (ts) {
+        const when = new Date(parseInt(ts, 10) * 1000);
+        document.getElementById("updated").textContent =
+          "Updated " + when.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      }
     }
-    document.getElementById("free").addEventListener("click", () => send("/free"));
-    document.getElementById("status").addEventListener("click", () => send("/status"));
+
+    render();
+    if (app) {
+      app.onEvent("themeChanged", render);
+    }
   </script>
 </body>
 </html>
